@@ -10,7 +10,7 @@ class CPUSchedulingTab(ttk.Frame):
         self.rows: list[ProcessRow] = []
         self.extra_fields = extra_fields if extra_fields is not None else []
         self.global_controls = global_controls if global_controls is not None else []
-        self.global_widgets = {}   # store key -> tkinter variable
+        self.global_widgets = {}
         self.create_widgets()
 
     def create_widgets(self):
@@ -22,29 +22,33 @@ class CPUSchedulingTab(ttk.Frame):
         # ===== LEFT: Process List =====
         left_frame = ttk.LabelFrame(top_container, text="Processes", padding=10)
         left_frame.grid(row=0, column=0, sticky="nsew", padx=(0,2))
-        left_frame.grid_rowconfigure(row_idx, weight=1)
-        left_frame.grid_columnconfigure(0, weight=1)
+        left_frame.grid_columnconfigure(0, weight=1)          # canvas
+        left_frame.grid_columnconfigure(1, weight=0)          # scrollbar
+        if self.global_controls:
+            left_frame.grid_columnconfigure(2, weight=0)      # global controls column
 
-        # Column headers (dynamic)
+        # Column headers – span ONLY the canvas column (0) so they match the process entries
         header_frame = ttk.Frame(left_frame)
-        header_frame.grid(row=0, column=0, sticky="ew", pady=(0,5))
+        header_frame.grid(row=0, column=0, columnspan=1, sticky="ew", pady=(0,5))
 
-        # Base columns: Process, Arrival Time, Burst Time
         base_cols = ["Process", "Arrival Time", "Burst Time"]
         total_cols = len(base_cols) + len(self.extra_fields)
         for i in range(total_cols):
             header_frame.grid_columnconfigure(i, weight=1, uniform="headcols")
-
         for i, text in enumerate(base_cols):
             ttk.Label(header_frame, text=text, anchor="center").grid(row=0, column=i, sticky="ew")
         for i, (label, key, width, default, validator) in enumerate(self.extra_fields):
             ttk.Label(header_frame, text=label, anchor="center").grid(row=0, column=len(base_cols)+i, sticky="ew")
 
-        # Scrollable rows
-        self.row_canvas = tk.Canvas(left_frame, borderwidth=0, highlightthickness=0, height=120)
-        self.row_canvas.grid(row=1, column=0, sticky="nsew")
+        # Row index for canvas, scrollbar, and optional controls
+        row_idx = 1
+        left_frame.grid_rowconfigure(row_idx, weight=1)
+
+        # Canvas and scrollbar
+        self.row_canvas = tk.Canvas(left_frame, borderwidth=0, highlightthickness=0, height=130)
+        self.row_canvas.grid(row=row_idx, column=0, sticky="nsew")
         scrollbar = ttk.Scrollbar(left_frame, orient="vertical", command=self.row_canvas.yview)
-        scrollbar.grid(row=1, column=1, sticky="ns")
+        scrollbar.grid(row=row_idx, column=1, sticky="ns")
         self.row_frame = ttk.Frame(self.row_canvas)
         self.row_frame.bind("<Configure>",
                             lambda e: self.row_canvas.configure(scrollregion=self.row_canvas.bbox("all")))
@@ -52,10 +56,34 @@ class CPUSchedulingTab(ttk.Frame):
         self.row_canvas.bind("<Configure>", self._on_canvas_configure)
         self.row_canvas.configure(yscrollcommand=scrollbar.set)
 
-        # First empty row with the defined extra fields
+        # Global controls (e.g. Time Quantum) → to the right of the scrollbar, top‑aligned
+        if self.global_controls:
+            ctrl_frame = ttk.Frame(left_frame)
+            ctrl_frame.grid(row=row_idx, column=2, sticky="n", padx=(10,0), pady=5)
+            for ctrl in self.global_controls:
+                lbl = ttk.Label(ctrl_frame, text=ctrl["label"] + ":")
+                lbl.pack(anchor="w", pady=(0,2))
+                if ctrl["type"] == "spinbox":
+                    var = tk.IntVar(value=ctrl.get("default", 1))
+                    spin = ttk.Spinbox(ctrl_frame, from_=ctrl.get("from",1), to=ctrl.get("to",100),
+                                    textvariable=var, width=5, justify="center")
+                    spin.pack(anchor="w")
+                else:
+                    var = tk.StringVar(value=str(ctrl.get("default", "")))
+                    entry = ttk.Entry(ctrl_frame, textvariable=var, width=5, justify="center")
+                    entry.pack(anchor="w")
+                self.global_widgets[ctrl["key"]] = var
+
+        # First empty row
         self.add_row()
 
-        # ===== RIGHT: Results =====
+        # ===== RIGHT: Results (unchanged) =====
+        # ...
+
+        # --- Bottom: Gantt chart (unchanged) ---
+        # ...
+
+        # ===== RIGHT: Results (unchanged) =====
         right_frame = ttk.LabelFrame(top_container, text="Results", padding=10)
         right_frame.grid(row=0, column=1, sticky="nsew", padx=(2,0))
         med_font = ("Arial", 10)
@@ -70,40 +98,16 @@ class CPUSchedulingTab(ttk.Frame):
         self.throughput_label = ttk.Label(right_frame, text="Throughput: ---", font=med_font)
         self.throughput_label.pack(anchor="w", pady=2)
 
-        # --- Bottom: Gantt chart ---
+        # --- Bottom: Gantt chart (unchanged) ---
         gantt_frame = ttk.LabelFrame(self, text="Gantt Chart", padding=5)
         gantt_frame.pack(fill="both", expand=True, padx=5, pady=(0,5))
-
         self.generate_btn = ttk.Button(gantt_frame, text="Generate Gantt Chart")
         self.generate_btn.pack(anchor="w", pady=(0,5))
-
-        self.canvas = tk.Canvas(gantt_frame, bg="white")
-        self.canvas.pack(fill="both", expand=True)
+        self.canvas = tk.Canvas(gantt_frame, bg="white", height=200)
+        self.canvas.pack(fill="x", expand=False)
         self.h_scrollbar = ttk.Scrollbar(gantt_frame, orient="horizontal", command=self.canvas.xview)
         self.h_scrollbar.pack(fill="x")
         self.canvas.configure(xscrollcommand=self.h_scrollbar.set)
-        
-        if self.global_controls:
-            ctrl_frame = ttk.Frame(left_frame)
-            ctrl_frame.grid(row=1, column=0, sticky="ew", pady=(0,5))
-            for i, ctrl in enumerate(self.global_controls):
-                lbl = ttk.Label(ctrl_frame, text=ctrl["label"] + ":")
-                lbl.grid(row=0, column=i*2, padx=(0,2))
-                if ctrl["type"] == "spinbox":
-                    var = tk.IntVar(value=ctrl.get("default", 1))
-                    spin = ttk.Spinbox(ctrl_frame, from_=ctrl.get("from",1), to=ctrl.get("to",100),
-                                       textvariable=var, width=5, justify="center")
-                    spin.grid(row=0, column=i*2+1, padx=(0,10))
-                else:  # entry
-                    var = tk.StringVar(value=str(ctrl.get("default", "")))
-                    entry = ttk.Entry(ctrl_frame, textvariable=var, width=5, justify="center")
-                    entry.grid(row=0, column=i*2+1, padx=(0,10))
-                self.global_widgets[ctrl["key"]] = var
-
-        # Row canvas now goes to row 2 (or row 1 if no global controls)
-        row_idx = 2 if self.global_controls else 1
-        self.row_canvas = tk.Canvas(left_frame, borderwidth=0, highlightthickness=0, height=120)
-        self.row_canvas.grid(row=row_idx, column=0, sticky="nsew")
 
     def _on_canvas_configure(self, event):
         canvas_width = event.width
