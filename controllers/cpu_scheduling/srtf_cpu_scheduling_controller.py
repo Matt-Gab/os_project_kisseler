@@ -1,6 +1,6 @@
-from models.cpu_scheduling.fcfs_cpu_scheduling_model import Job, fcfs_schedule
+from models.cpu_scheduling.srtf_cpu_scheduling_model import Job, srtf_schedule
 
-class FCFSCPUController:
+class SRTFCPUController:
     def __init__(self, view):
         self.view = view
         self.view.set_generate_command(self.generate_gantt)
@@ -11,10 +11,8 @@ class FCFSCPUController:
             self.view.show_info("No Jobs", "Add at least one valid process first.")
             return
 
-        # Convert dicts to Job objects
         jobs = [Job(d["name"], d["arrival"], d["burst"], extra=d["extra"]) for d in job_dicts]
 
-        # Duplicate checks (name and arrival)
         seen_names = set()
         seen_arrivals = set()
         for job in jobs:
@@ -28,7 +26,7 @@ class FCFSCPUController:
                 return
             seen_arrivals.add(job.arrival)
 
-        events = fcfs_schedule(jobs)
+        events = srtf_schedule(jobs)
         self.view.display_gantt(events)
 
         n = len(jobs)

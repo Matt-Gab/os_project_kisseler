@@ -1,11 +1,9 @@
-# views/cpu_scheduling/fcfs_cpu_scheduling_tab.py
 import tkinter as tk
 from tkinter import ttk, messagebox
-from models.cpu_scheduling.fcfs_cpu_scheduling_model import Job
 from utils.gantt_drawer import draw_gantt_chart
 from utils.process_row import ProcessRow
 
-class FCFSCPUSchedulingTab(ttk.Frame):
+class CPUSchedulingTab(ttk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
         self.rows: list[ProcessRow] = []
@@ -106,20 +104,32 @@ class FCFSCPUSchedulingTab(ttk.Frame):
         self.generate_btn.config(command=command)
 
     def get_all_jobs(self):
-        jobs = []
+        """Return a list of dictionaries with job data (no model dependency)."""
+        job_dicts = []
         for row in self.rows:
-            base = row.get_base_job_dict()
-            if base:
+            base = row.get_base_job_dict()      # dict with name, arrival, burst
+            if base is not None:
                 extra = row.get_extra_values()
-                job = Job(name=base["name"], arrival=base["arrival"],
-                          burst=base["burst"], extra=extra)
-                jobs.append(job)
-        return jobs
+                job_dicts.append({
+                    "name": base["name"],
+                    "arrival": base["arrival"],
+                    "burst": base["burst"],
+                    "extra": extra
+                })
+        return job_dicts
+
+    def add_job_to_tree(self, job):
+        """Add a job object (must have .name, .arrival, .burst) to the display."""
+        self.tree.insert("", "end", values=(job.name, job.arrival, job.burst))
+
+    def clear_entries(self):
+        self.name_entry.delete(0, "end")
+        self.arrival_entry.delete(0, "end")
+        self.burst_entry.delete(0, "end")
 
     def display_gantt(self, events):
-        # Get current canvas height for centering
         canvas_height = self.canvas.winfo_height()
-        if canvas_height < 50:   # still too small, use default
+        if canvas_height < 50:
             canvas_height = None
         draw_gantt_chart(self.canvas, events, canvas_height)
 

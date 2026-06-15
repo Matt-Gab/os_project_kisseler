@@ -1,8 +1,12 @@
 # views/main_view.py
 import tkinter as tk
 from tkinter import ttk
-from .cpu_scheduling.fcfs_cpu_scheduling_tab import FCFSCPUSchedulingTab
+from views.cpu_scheduling.cpu_scheduling_tab import CPUSchedulingTab
 from controllers.cpu_scheduling.fcfs_cpu_scheduling_controller import FCFSCPUController
+from controllers.cpu_scheduling.sjf_cpu_scheduling_controller import SJFCPUController
+from controllers.cpu_scheduling.srtf_cpu_scheduling_controller import SRTFCPUController
+from controllers.cpu_scheduling.hrrn_cpu_scheduling_controller import HRRNCPUController
+
 
 class MainView(ttk.Frame):
     def __init__(self, parent):
@@ -23,10 +27,20 @@ class MainView(ttk.Frame):
         sub_cpu_scheduling_notebook = ttk.Notebook(cpu_scheduling_tab)
         sub_cpu_scheduling_notebook.grid(row=0, column=0, sticky="nsew")
 
-        # --- FCFS (fully wired) --- #
-        fcfs_tab = FCFSCPUSchedulingTab(sub_cpu_scheduling_notebook)
-        fcfs_controller = FCFSCPUController(fcfs_tab)
-        sub_cpu_scheduling_notebook.add(fcfs_tab, text="First-Come, First Served")
+        # FCFS
+        fcfs_tab = CPUSchedulingTab(sub_cpu_scheduling_notebook)
+        FCFSCPUController(fcfs_tab)
+        sub_cpu_scheduling_notebook.add(fcfs_tab, text="First-Come, First-Served")
+
+        # SJF (Non‑preemptive)
+        sjf_tab = CPUSchedulingTab(sub_cpu_scheduling_notebook)
+        SJFCPUController(sjf_tab)
+        sub_cpu_scheduling_notebook.add(sjf_tab, text="Shortest-Job-First")
+
+        # SRTF (Preemptive SJF)
+        srtf_tab = CPUSchedulingTab(sub_cpu_scheduling_notebook)
+        SRTFCPUController(srtf_tab)
+        sub_cpu_scheduling_notebook.add(srtf_tab, text="Shortest-Remaining-Time-First")
 
         # --- Placeholders for other CPU scheduling tabs ---
         # NP SJF, P SJF, NP Priority, P Priority, HRRN, RR, MQ, MFQ ...
