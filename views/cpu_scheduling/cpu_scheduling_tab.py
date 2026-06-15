@@ -1,12 +1,14 @@
+# views/cpu_scheduling/cpu_scheduling_tab.py (updated)
 import tkinter as tk
 from tkinter import ttk, messagebox
 from utils.gantt_drawer import draw_gantt_chart
-from utils.process_row import ProcessRow
+from utils.process_row import ProcessRow, ExtraFieldDef
 
 class CPUSchedulingTab(ttk.Frame):
-    def __init__(self, parent):
+    def __init__(self, parent, extra_fields=None):
         super().__init__(parent)
         self.rows: list[ProcessRow] = []
+        self.extra_fields = extra_fields if extra_fields is not None else []
         self.create_widgets()
 
     def create_widgets(self):
@@ -21,14 +23,22 @@ class CPUSchedulingTab(ttk.Frame):
         left_frame.grid_rowconfigure(1, weight=1)
         left_frame.grid_columnconfigure(0, weight=1)
 
+        # Column headers (dynamic)
         header_frame = ttk.Frame(left_frame)
         header_frame.grid(row=0, column=0, sticky="ew", pady=(0,5))
-        for i in range(3):
-            header_frame.grid_columnconfigure(i, weight=1, uniform="headcols")
-        ttk.Label(header_frame, text="Process", anchor="center").grid(row=0, column=0, sticky="ew")
-        ttk.Label(header_frame, text="Arrival Time", anchor="center").grid(row=0, column=1, sticky="ew")
-        ttk.Label(header_frame, text="Burst Time", anchor="center").grid(row=0, column=2, sticky="ew")
 
+        # Base columns: Process, Arrival Time, Burst Time
+        base_cols = ["Process", "Arrival Time", "Burst Time"]
+        total_cols = len(base_cols) + len(self.extra_fields)
+        for i in range(total_cols):
+            header_frame.grid_columnconfigure(i, weight=1, uniform="headcols")
+
+        for i, text in enumerate(base_cols):
+            ttk.Label(header_frame, text=text, anchor="center").grid(row=0, column=i, sticky="ew")
+        for i, (label, key, width, default, validator) in enumerate(self.extra_fields):
+            ttk.Label(header_frame, text=label, anchor="center").grid(row=0, column=len(base_cols)+i, sticky="ew")
+
+        # Scrollable rows
         self.row_canvas = tk.Canvas(left_frame, borderwidth=0, highlightthickness=0, height=120)
         self.row_canvas.grid(row=1, column=0, sticky="nsew")
         scrollbar = ttk.Scrollbar(left_frame, orient="vertical", command=self.row_canvas.yview)
@@ -39,6 +49,8 @@ class CPUSchedulingTab(ttk.Frame):
         self.row_canvas.create_window((0, 0), window=self.row_frame, anchor="nw", tags="row_window")
         self.row_canvas.bind("<Configure>", self._on_canvas_configure)
         self.row_canvas.configure(yscrollcommand=scrollbar.set)
+
+        # First empty row with the defined extra fields
         self.add_row()
 
         # ===== RIGHT: Results =====
@@ -56,15 +68,13 @@ class CPUSchedulingTab(ttk.Frame):
         self.throughput_label = ttk.Label(right_frame, text="Throughput: ---", font=med_font)
         self.throughput_label.pack(anchor="w", pady=2)
 
-        # --- Bottom: Gantt chart (fills remaining space) ---
+        # --- Bottom: Gantt chart ---
         gantt_frame = ttk.LabelFrame(self, text="Gantt Chart", padding=5)
-        # Pack AFTER top_container so it takes the rest of the window
         gantt_frame.pack(fill="both", expand=True, padx=5, pady=(0,5))
 
         self.generate_btn = ttk.Button(gantt_frame, text="Generate Gantt Chart")
         self.generate_btn.pack(anchor="w", pady=(0,5))
 
-        # Canvas fills the whole gantt_frame, scrollbar at bottom
         self.canvas = tk.Canvas(gantt_frame, bg="white")
         self.canvas.pack(fill="both", expand=True)
         self.h_scrollbar = ttk.Scrollbar(gantt_frame, orient="horizontal", command=self.canvas.xview)
@@ -72,19 +82,14 @@ class CPUSchedulingTab(ttk.Frame):
         self.canvas.configure(xscrollcommand=self.h_scrollbar.set)
 
     def _on_canvas_configure(self, event):
-        """Resize the inner row frame to match canvas width."""
         canvas_width = event.width
         self.row_canvas.itemconfig("row_window", width=canvas_width)
 
-    # --- Row management (same as before) ---
-    def add_row(self, extra_fields=None):
-        if extra_fields is None:
-            extra_fields = []
-        row = ProcessRow(self.row_frame, self, extra_fields)
+    def add_row(self):
+        row = ProcessRow(self.row_frame, self, extra_fields=self.extra_fields)
         self.rows.append(row)
 
     def on_row_change(self):
-        # Trigger new row only when the LAST empty row becomes VALID
         empty_rows = [r for r in self.rows if r.is_empty()]
         if len(empty_rows) == 0:
             self.add_row()
@@ -94,20 +99,14 @@ class CPUSchedulingTab(ttk.Frame):
                 row.destroy()
                 self.rows.remove(row)
 
-    # If you want spawn on valid, add this extra check:
-    # last_row = self.rows[-1] if self.rows else None
-    # if last_row and last_row.is_valid():
-    #    self.add_row()
-
-    # --- Methods for controller ---
+    # ---------- Controller methods ----------
     def set_generate_command(self, command):
         self.generate_btn.config(command=command)
 
     def get_all_jobs(self):
-        """Return a list of dictionaries with job data (no model dependency)."""
         job_dicts = []
         for row in self.rows:
-            base = row.get_base_job_dict()      # dict with name, arrival, burst
+            base = row.get_base_job_dict()
             if base is not None:
                 extra = row.get_extra_values()
                 job_dicts.append({
@@ -117,15 +116,6 @@ class CPUSchedulingTab(ttk.Frame):
                     "extra": extra
                 })
         return job_dicts
-
-    def add_job_to_tree(self, job):
-        """Add a job object (must have .name, .arrival, .burst) to the display."""
-        self.tree.insert("", "end", values=(job.name, job.arrival, job.burst))
-
-    def clear_entries(self):
-        self.name_entry.delete(0, "end")
-        self.arrival_entry.delete(0, "end")
-        self.burst_entry.delete(0, "end")
 
     def display_gantt(self, events):
         canvas_height = self.canvas.winfo_height()

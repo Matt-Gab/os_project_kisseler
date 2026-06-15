@@ -5,6 +5,8 @@ from views.cpu_scheduling.cpu_scheduling_tab import CPUSchedulingTab
 from controllers.cpu_scheduling.fcfs_cpu_scheduling_controller import FCFSCPUController
 from controllers.cpu_scheduling.sjf_cpu_scheduling_controller import SJFCPUController
 from controllers.cpu_scheduling.srtf_cpu_scheduling_controller import SRTFCPUController
+from controllers.cpu_scheduling.priority_np_cpu_scheduling_controller import PriorityNPCPUController
+from controllers.cpu_scheduling.priority_p_cpu_scheduling_controller import PriorityPCPUController
 from controllers.cpu_scheduling.hrrn_cpu_scheduling_controller import HRRNCPUController
 
 
@@ -41,6 +43,24 @@ class MainView(ttk.Frame):
         srtf_tab = CPUSchedulingTab(sub_cpu_scheduling_notebook)
         SRTFCPUController(srtf_tab)
         sub_cpu_scheduling_notebook.add(srtf_tab, text="Shortest-Remaining-Time-First")
+        
+        # Priority Non‑Preemptive
+        extra_fields_priority = [
+            ("Priority", "priority", 4, "", lambda v: v.isdigit() or v == "")
+        ]
+        prio_np_tab = CPUSchedulingTab(sub_cpu_scheduling_notebook, extra_fields=extra_fields_priority)
+        PriorityNPCPUController(prio_np_tab)
+        sub_cpu_scheduling_notebook.add(prio_np_tab, text="Priority Nonpreemptive")
+        
+        # Preemptive Priority
+        prio_p_tab = CPUSchedulingTab(sub_cpu_scheduling_notebook, extra_fields=extra_fields_priority)
+        PriorityPCPUController(prio_p_tab)
+        sub_cpu_scheduling_notebook.add(prio_p_tab, text="Priority P")
+        
+        # HRRN
+        hrrn_tab = CPUSchedulingTab(sub_cpu_scheduling_notebook)
+        HRRNCPUController(hrrn_tab)
+        sub_cpu_scheduling_notebook.add(hrrn_tab, text="HRRN")
 
         # --- Placeholders for other CPU scheduling tabs ---
         # NP SJF, P SJF, NP Priority, P Priority, HRRN, RR, MQ, MFQ ...
