@@ -9,6 +9,9 @@ from controllers.cpu_scheduling.priority_p_cpu_scheduling_controller import Prio
 from controllers.cpu_scheduling.hrrn_cpu_scheduling_controller import HRRNCPUController
 from controllers.cpu_scheduling.rr_cpu_scheduling_controller import RRCPUController
 
+from views.memory_management.mft_tab import MFTTab
+
+
 
 
 class MainView(ttk.Frame):
@@ -83,6 +86,10 @@ class MainView(ttk.Frame):
 
         sub_memory_management_notebook = ttk.Notebook(memory_management_tab)
         sub_memory_management_notebook.grid(row=0, column=0, sticky="nsew")
+        
+        # MFT
+        mft_tab = MFTTab(sub_memory_management_notebook)
+        sub_memory_management_notebook.add(mft_tab, text="MFT")
         # MFT ATL, BF MFT RTL, FF MFT RTL, BAF MFT RTL, MVT NC, MVT C ...
 
         # --- Virtual Memory --- #
