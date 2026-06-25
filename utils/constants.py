@@ -1,5 +1,3 @@
-# utils/constants.py
-
 # Gantt chart drawing dimensions
 SQUARE_SIZE = 40         # width and height of each job block (perfect square)
 JOB_HEIGHT = SQUARE_SIZE # same as SQUARE_SIZE
@@ -26,3 +24,12 @@ MEM_TIME_FONT = ("Arial", 9, "bold")
 MEM_LEFT_MARGIN = 30
 MEM_SNAPSHOT_WIDTH = 100
 MEM_ARROW_AREA_WIDTH = 40
+
+# ---- Disk scheduling drawing ----
+DISK_TRACK_SCALE = 3           # pixels per track unit
+DISK_STEP_Y = 30               # vertical spacing between steps
+DISK_TOP_MARGIN = 40           # top margin for axis labels
+DISK_LEFT_MARGIN = 50          # left margin
+DISK_POINT_RADIUS = 4          # radius of the head position dot
+DISK_AXIS_FONT = ("Arial", 8)
+DISK_LABEL_FONT = ("Arial", 7)

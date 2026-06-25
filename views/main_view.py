@@ -10,8 +10,20 @@ from controllers.cpu_scheduling.hrrn_cpu_scheduling_controller import HRRNCPUCon
 from controllers.cpu_scheduling.rr_cpu_scheduling_controller import RRCPUController
 
 from views.memory_management.mft_tab import MFTTab
+from views.memory_management.mvt_tab import MVTTab
 
+from views.virtual_memory.page_replacement_tab import PageReplacementTab
+from controllers.virtual_memory.fifo_controller import FIFOController
+from controllers.virtual_memory.optimal_controller import OptimalController
+from controllers.virtual_memory.lru_controller import LRUController
+from controllers.virtual_memory.counting_based_controller import CountingBasedController
 
+from views.mass_storage.disk_scheduling_tab import DiskSchedulingTab
+from controllers.mass_storage.fcfs_controller import FCFSDiskController
+from controllers.mass_storage.sstf_controller import SSTFDiskController
+from controllers.mass_storage.scan_controller import SCANDiskController
+from controllers.mass_storage.cscan_controller import CSCANDiskController
+from controllers.mass_storage.look_controller import LOOKDiskController
 
 
 class MainView(ttk.Frame):
@@ -68,7 +80,7 @@ class MainView(ttk.Frame):
         
         # Round Robin
         global_controls_rr = [
-            {"label": "Time Quantum", "key": "quantum", "type": "spinbox", "default": 2, "from": 1, "to": 100}
+            {"label": "Time\nQuantum", "key": "quantum", "type": "entry", "default": ""}
         ]
         rr_tab = CPUSchedulingTab(sub_cpu_scheduling_notebook, global_controls=global_controls_rr)
         RRCPUController(rr_tab)
@@ -91,6 +103,10 @@ class MainView(ttk.Frame):
         mft_tab = MFTTab(sub_memory_management_notebook)
         sub_memory_management_notebook.add(mft_tab, text="MFT")
         # MFT ATL, BF MFT RTL, FF MFT RTL, BAF MFT RTL, MVT NC, MVT C ...
+        
+        # MVT
+        mvt_tab = MVTTab(sub_memory_management_notebook)
+        sub_memory_management_notebook.add(mvt_tab, text="MVT")
 
         # --- Virtual Memory --- #
         virtual_memory_tab = ttk.Frame(self.main_notebook)
@@ -100,7 +116,35 @@ class MainView(ttk.Frame):
 
         sub_virtual_memory_notebook = ttk.Notebook(virtual_memory_tab)
         sub_virtual_memory_notebook.grid(row=0, column=0, sticky="nsew")
-        # FIFO, Optimal, LRU, LRUA ARB, LRUA SCC, LRUA ESC, CB LFU, CB MFU ...
+
+        # --- FIFO ---
+        fifo_tab = PageReplacementTab(sub_virtual_memory_notebook, "FIFO")
+        FIFOController(fifo_tab)
+        sub_virtual_memory_notebook.add(fifo_tab, text="FIFO")
+
+        # --- Optimal ---
+        opt_tab = PageReplacementTab(sub_virtual_memory_notebook, "Optimal")
+        OptimalController(opt_tab)
+        sub_virtual_memory_notebook.add(opt_tab, text="Optimal")
+
+        # --- LRU ---
+        lru_tab = PageReplacementTab(sub_virtual_memory_notebook, "LRU")
+        LRUController(lru_tab)
+        sub_virtual_memory_notebook.add(lru_tab, text="LRU")
+
+        # --- Counting-Based (LFU / MFU) ---
+        extra_ctrl_cb = [
+            {"label": "Policy", "key": "policy", "type": "combobox",
+             "values": ["LFU", "MFU"], "default": "LFU"}
+        ]
+        cb_tab = PageReplacementTab(sub_virtual_memory_notebook, "Counting-Based",
+                                    extra_controls=extra_ctrl_cb)
+        CountingBasedController(cb_tab)
+        sub_virtual_memory_notebook.add(cb_tab, text="Counting-Based")
+
+        # --- Placeholder for LRU Approximation ---
+        frame = ttk.Frame(sub_virtual_memory_notebook)
+        sub_virtual_memory_notebook.add(frame, text="LRU Approximation")         
 
         # --- Mass Storage --- #
         mass_storage_tab = ttk.Frame(self.main_notebook)
@@ -110,4 +154,29 @@ class MainView(ttk.Frame):
 
         sub_mass_storage_notebook = ttk.Notebook(mass_storage_tab)
         sub_mass_storage_notebook.grid(row=0, column=0, sticky="nsew")
+
+        # --- FCFS ---
+        fcfs_disk_tab = DiskSchedulingTab(sub_mass_storage_notebook, "FCFS")
+        FCFSDiskController(fcfs_disk_tab)
+        sub_mass_storage_notebook.add(fcfs_disk_tab, text="FCFS")
+
+        # --- SSTF ---
+        sstf_disk_tab = DiskSchedulingTab(sub_mass_storage_notebook, "SSTF")
+        SSTFDiskController(sstf_disk_tab)
+        sub_mass_storage_notebook.add(sstf_disk_tab, text="SSTF")
+
+        # --- SCAN ---
+        scan_disk_tab = DiskSchedulingTab(sub_mass_storage_notebook, "SCAN")
+        SCANDiskController(scan_disk_tab)
+        sub_mass_storage_notebook.add(scan_disk_tab, text="SCAN")
+
+        # --- C-SCAN ---
+        cscan_disk_tab = DiskSchedulingTab(sub_mass_storage_notebook, "C-SCAN")
+        CSCANDiskController(cscan_disk_tab)
+        sub_mass_storage_notebook.add(cscan_disk_tab, text="C-SCAN")
+
+        # --- LOOK ---
+        look_disk_tab = DiskSchedulingTab(sub_mass_storage_notebook, "LOOK")
+        LOOKDiskController(look_disk_tab)
+        sub_mass_storage_notebook.add(look_disk_tab, text="LOOK")
         # FCFS, SSTF, SCAN, C-SCAN, LOOK ...

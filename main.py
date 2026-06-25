@@ -6,7 +6,7 @@ from views.main_view import MainView
 if __name__ == "__main__":
     root = tk.Tk()
     root.title("Operating System Simulator")
-    root.geometry("960x540")
+    root.geometry("1280x540")
     
     root.grid_rowconfigure(0, weight=1)
     root.grid_columnconfigure(0, weight=1)

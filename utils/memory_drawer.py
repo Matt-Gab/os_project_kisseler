@@ -12,7 +12,10 @@ def draw_memory_timeline(canvas, events, partition_sizes):
         scaled_heights.append(max(MEM_MIN_PART_HEIGHT, size // 10))
     total_height = sum(scaled_heights)
 
-    base_y = total_height + 20   # top margin
+    # Space above the memory blocks for T= labels
+    top_margin = 30
+    base_y = total_height + top_margin
+
     y_positions = []
     current_y = base_y
     for h in scaled_heights:
@@ -20,13 +23,22 @@ def draw_memory_timeline(canvas, events, partition_sizes):
         current_y -= h
 
     num_snapshots = len(events)
-    total_width = num_snapshots * (MEM_SNAPSHOT_WIDTH + MEM_ARROW_AREA_WIDTH) + MEM_LEFT_MARGIN
+    total_width = num_snapshots * (MEM_SNAPSHOT_WIDTH + MEM_ARROW_AREA_WIDTH) + MEM_LEFT_MARGIN + 40
 
-    # Draw each snapshot
+    # ---- Draw each snapshot ----
     for i, event in enumerate(events):
         x_base = MEM_LEFT_MARGIN + i * (MEM_SNAPSHOT_WIDTH + MEM_ARROW_AREA_WIDTH)
 
-        # ---- Arrow area ----
+        # T= label at the very top
+        canvas.create_text(
+            x_base + MEM_ARROW_AREA_WIDTH + MEM_SNAPSHOT_WIDTH // 2,
+            5,
+            text=f"T = {event['time']}",
+            font=MEM_TIME_FONT,
+            anchor="n"
+        )
+
+        # ---- Arrow area (left of memory blocks) ----
         for pidx in range(num_partitions):
             top_y, bottom_y = y_positions[pidx]
             mid_y = (top_y + bottom_y) // 2
@@ -45,16 +57,16 @@ def draw_memory_timeline(canvas, events, partition_sizes):
 
             if load_action and unload_action:
                 text = f"{unload_job} ←\n{load_job} →"
-                canvas.create_text(x_base + MEM_ARROW_AREA_WIDTH//2, mid_y,
+                canvas.create_text(x_base + MEM_ARROW_AREA_WIDTH // 2, mid_y,
                                    text=text, font=MEM_ARROW_FONT, justify="center")
             elif load_action:
-                canvas.create_text(x_base + MEM_ARROW_AREA_WIDTH//2, mid_y,
+                canvas.create_text(x_base + MEM_ARROW_AREA_WIDTH // 2, mid_y,
                                    text=f"{load_job} →", font=MEM_ARROW_FONT)
             elif unload_action:
-                canvas.create_text(x_base + MEM_ARROW_AREA_WIDTH//2, mid_y,
+                canvas.create_text(x_base + MEM_ARROW_AREA_WIDTH // 2, mid_y,
                                    text=f"{unload_job} ←", font=MEM_ARROW_FONT)
 
-        # ---- Memory snapshot ----
+        # ---- Memory blocks ----
         for pidx in range(num_partitions):
             top_y, bottom_y = y_positions[pidx]
             x1 = x_base + MEM_ARROW_AREA_WIDTH
@@ -72,38 +84,25 @@ def draw_memory_timeline(canvas, events, partition_sizes):
             canvas.create_rectangle(x1, top_y, x2, bottom_y,
                                     fill=fill, outline="black")
             if label:
-                canvas.create_text((x1+x2)//2, (top_y+bottom_y)//2,
+                canvas.create_text((x1 + x2) // 2, (top_y + bottom_y) // 2,
                                    text=label, font=MEM_LABEL_FONT)
 
-        # ---- Partition boundary lines + address labels ----
+        # ---- Partition boundaries and address labels ----
         for pidx in range(num_partitions):
             top_y, bottom_y = y_positions[pidx]
             x1 = x_base + MEM_ARROW_AREA_WIDTH
             x2 = x1 + MEM_SNAPSHOT_WIDTH
-            # line at top of partition
+            # Line at top of this partition
             canvas.create_line(x1, top_y, x2, top_y, fill="black")
-            addr = sum(partition_sizes[:pidx+1])
+            # Address label to the left of the arrow area
+            addr = sum(partition_sizes[:pidx + 1])
             canvas.create_text(x_base + MEM_ARROW_AREA_WIDTH - 5, top_y,
                                text=str(addr), anchor="e", font=MEM_ARROW_FONT)
 
-        # ---- Time label ----
-        canvas.create_text(x_base + MEM_ARROW_AREA_WIDTH + MEM_SNAPSHOT_WIDTH//2,
-                           y_positions[-1][0] - 20, text=f"T={event['time']}",
-                           font=MEM_TIME_FONT, anchor="s")
-
-        # ---- Hold queue ----
-        if event["hold_queue"]:
-            hold_text = "Hold: " + ", ".join(event["hold_queue"])
-            canvas.create_text(x_base + MEM_ARROW_AREA_WIDTH//2,
-                               y_positions[-1][0] - 20,
-                               text=hold_text, font=MEM_ARROW_FONT, anchor="s")
-
-    # ---- Set scroll region (both directions) ----
+    # ---- Scroll region ----
     canvas.update_idletasks()
     bbox = canvas.bbox("all")
     if bbox:
         x1, y1, x2, y2 = bbox
         canvas.config(scrollregion=(0, 0, x2 + 30, y2 + 20))
-    else:
-        canvas.config(scrollregion=(0, 0, 0, 0))
     canvas.xview_moveto(0)

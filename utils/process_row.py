@@ -14,7 +14,7 @@ class ProcessRow:
 
         total_cols = 3 + len(self.extra_fields)
         for i in range(total_cols):
-            self.frame.grid_columnconfigure(i, weight=1, uniform="rowcols")
+            self.frame.grid_columnconfigure(i, weight=1, uniform="jobcols")
 
         self.name_var = tk.StringVar()
         self.arrival_var = tk.StringVar()
